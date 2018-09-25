@@ -5,6 +5,19 @@ import cv2;         #openCV
 import argparse;
 
 
+# arduino stuffs ........................................
+
+import serial   #interface -> Arduino
+import time
+
+PORT = "COM3"
+RATE = 9600
+#ser = serial.Serial(PORT, RATE)
+
+#wheel_score = 0;
+
+
+
 # Arguments Stuffs .........................................
 parser = argparse.ArgumentParser(description = 'python main.py [opaque][1]')
 parser.add_argument("bgrnd",help="0=>clear bgrnd, 1=>opaque bgrnd",type=int)
@@ -24,18 +37,23 @@ eye_cascade = cv2.CascadeClassifier('haarcascade_eye.xml'); #face referential
 
 
 
-# Detecting Face - Eyes
+# Detection Algorithm............
 def detect(gray, frame):  
 
-    cv2.rectangle(frame,(0,0),(0,5),(255,0,0),5);
+
+    # DEFINE DANGER-ZONE
+    safe_x, safe_y, _sw, _sh = 250,150,100, 75;
+    cv2.rectangle(frame, (safe_x, safe_y), (safe_x+_sw, safe_y+_sh), (255, 0, 0), 4); 
 
 
     global args;
+
     # Detect face & get bound-coordinates 
     faces = face_cascade.detectMultiScale(gray, 1.3, 5); #got {x,y,w,h}
     
+    # set background UPAQUE
     if(args.bgrnd==1):
-        cv2.rectangle(frame, (0, 0), (1000, 1000), (255, 105, 180), 10000); 
+        cv2.rectangle(frame, (0, 0), (1000, 1000), (0, 0, 0), 10000); 
     
     
     # Draw Face-Bounds on Frame
@@ -60,7 +78,9 @@ def detect(gray, frame):
         global origin_x, origin_y, in_count;
 
         if(origin_x == None):
+
             for(eye_x, eye_y, ew, eh) in eyes[:1]:
+                
                 # Draw eye-enclosure
                 cv2.rectangle(roi_color, (eye_x, eye_y), (eye_x +ew, eye_y + eh), (0, 255, 0), 3) 
             
@@ -78,31 +98,25 @@ def detect(gray, frame):
         # Measure DISPLACEMENT from ORIGIN
         if(not(origin_x==None)):
 
-            for(eye_x,eye_y,ew,eh) in eyes[:1]:
+            for(eye_x,eye_y,ew,eh) in eyes[:1]:     # track RIGHT eye only 
             
-            # Draw Origin for Visual Refernece 
-                cv2.rectangle(roi_color, (eye_x, eye_y), 
-                             (eye_x+ew, eye_y+eh), (0, 255, 0), 3)      # Draw outer eyes-bound 
+            # Draw EyeBox
+                
                 mex, mey = int(eye_x+ew/2), int(eye_y + eh/2);           # Compute MIDPOINT of Eye
-                cv2.circle(roi_color,(mex,mey),3,(0,0,255),3)     # Draw Midpoint
+                b,g,r = 0,255,0
 
 
-                # INTERFACE with SERVOMOTOR
+                # EYE IS IN DISTRACTED ZONE
+                if(mex < safe_x-face_x or mex > safe_x-face_x +_sw or mey < safe_y-face_y or mey > safe_y-face_y+_sh):
+                    b,g,r = 0,0,255
 
-                if(in_count % 5 == 0):       
-                    
-                    # move L 
-                    if(mex > origin_x - face_x):
-                        print("\nmoving left\nmex-:  ",mex,
-                            "\origin_x: ",origin_x)
-                    
-                    # move R 
-                    elif(mex < origin_x - 0):
-                        print("\nmoving right\nmex:  ", mex,
-                            "\origin_x: ",origin_x)
+                cv2.circle(roi_color,(mex,mey),3,(b,g,r),3)              #draw eye-center
+
+                cv2.rectangle(roi_color, (eye_x, eye_y), 
+                             (eye_x+ew, eye_y+eh), (b,g,r), 3)       # Draw outer eyes-bound 
+
                 
                 in_count+=1;
-    
     return frame;
 
 
@@ -114,9 +128,9 @@ video_capture = cv2.VideoCapture(0);    #"0" => object of live webcam video
 while True:
 
     
-    # sending latest frame from cam => detect()
+    # process (detection) frame 
     _, frame = video_capture.read();   
-    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY); #cascade operates on grayscale
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY); # cascade operates on grayscale
     canvas = detect(gray,frame); 
 
 
