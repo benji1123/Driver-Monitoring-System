@@ -7,12 +7,14 @@ import argparse;
 
 # arduino stuffs ........................................
 
-import serial   #interface -> Arduino
-import time
+# import serial   #interface -> Arduino
+# import time
 
-PORT = "COM3"
-RATE = 9600
-#ser = serial.Serial(PORT, RATE)
+# PORT = "COM4"
+# RATE = 9600
+# ser = serial.Serial(PORT, RATE)
+#                    # read wheel_score integer from arduino'
+# print(ser.readline(8))
 
 #wheel_score = 0;
 
@@ -27,6 +29,7 @@ args = parser.parse_args()
 
 in_count = 0                                # eye-motion counter (frame #)
 origin_x, origin_y = None, None;            # Origin Coordinate
+width_box, height_box = None, None;         # size of safety-box 
 
 
 # Computer Vision ..........................................
@@ -40,9 +43,11 @@ eye_cascade = cv2.CascadeClassifier('haarcascade_eye.xml'); #face referential
 # Detection Algorithm............
 def detect(gray, frame):  
 
+    global wheel_score, width_box, height_box;
 
-    # DEFINE DANGER-ZONE
-    safe_x, safe_y, _sw, _sh = 250,150,100, 75;
+
+    # .. DEFINE DANGER-ZONE ..
+    safe_x, safe_y, _sw, _sh = 180,200,200, 100;
     cv2.rectangle(frame, (safe_x, safe_y), (safe_x+_sw, safe_y+_sh), (255, 0, 0), 4); 
 
 
@@ -66,8 +71,8 @@ def detect(gray, frame):
         roi_color = frame[face_y:face_y + _h, face_x:face_x + _w]; #store face-coordinates (color)
 
         # Draw Line down Origin
-        if(not(origin_x == None)):
-            cv2.line(frame,(origin_x, 0), (origin_x, 800), (255, 255, 255), 3)
+        #if(not(origin_x == None)):
+            #cv2.line(frame,(origin_x, 0), (origin_x, 800), (255, 255, 255), 3)
         
 
         # Detect Eyes & get bound-coordinates 
@@ -113,7 +118,7 @@ def detect(gray, frame):
                 cv2.circle(roi_color,(mex,mey),3,(b,g,r),3)              #draw eye-center
 
                 cv2.rectangle(roi_color, (eye_x, eye_y), 
-                             (eye_x+ew, eye_y+eh), (b,g,r), 3)       # Draw outer eyes-bound 
+                             (eye_x+ew, eye_y+eh), (b,g,r), 3)           # Draw outer eyes-bound 
 
                 
                 in_count+=1;
@@ -124,7 +129,7 @@ def detect(gray, frame):
 
 # Implementing Continuous Detection with Webcam..........................
 
-video_capture = cv2.VideoCapture(0);    #"0" => object of live webcam video
+video_capture = cv2.VideoCapture(1);    #"0" => object of live webcam video
 while True:
 
     
