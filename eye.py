@@ -22,34 +22,75 @@ import argparse;
 
 # Arguments Stuffs .........................................
 parser = argparse.ArgumentParser(description = 'python main.py [opaque][1]')
-parser.add_argument("bgrnd",help="0=>clear bgrnd, 1=>opaque bgrnd",type=int)
+parser.add_argument("bgrnd",help="0 => clear bgrnd | 1=>opaque bgrnd",type=int)     # backcground type 
+parser.add_argument("cam",help="0 for webcam | 1 for external cam", type=int)       # webcam to use
 args = parser.parse_args()
 
 
 
-in_count = 0                                # eye-motion counter (frame #)
-origin_x, origin_y = None, None;            # Origin Coordinate
-width_box, height_box = None, None;         # size of safety-box 
+in_count = 0                                            # eye-motion counter (frame #)
+origin_x, origin_y = None, None;                        # Origin Coordinate
+size_confirm, width_box, height_box = 0, 100, 100       # Safety-Zone size attributes
+safe_x, safe_y = 180,200;
 
 
 # Computer Vision ..........................................
+
+
 # Loading Haar Classifiers 
 face_cascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml'); #global referential
 eye_cascade = cv2.CascadeClassifier('haarcascade_eye.xml'); #face referential
 
 
 
-
 # Detection Algorithm............
 def detect(gray, frame):  
 
-    global wheel_score, width_box, height_box;
+    global wheel_score, width_box, height_box, size_confirm, safe_x, safe_y;
 
 
     # .. DEFINE DANGER-ZONE ..
-    safe_x, safe_y, _sw, _sh = 180,200,200, 100;
-    cv2.rectangle(frame, (safe_x, safe_y), (safe_x+_sw, safe_y+_sh), (255, 0, 0), 4); 
+    cv2.rectangle(frame, (safe_x, safe_y), (safe_x+width_box, safe_y+height_box), (255, 0, 0), 4); 
 
+    # set size of safe-
+    if(size_confirm == 0):
+        while(True):
+
+            # alter size of box
+            if(cv2.waitKey(3) & 0xFF == ord('s')):
+                height_box += 5;
+                break;
+            elif(cv2.waitKey(3) & 0xFF == ord('w')):
+                height_box -= 5;
+                break;
+            elif(cv2.waitKey(3) & 0xFF == ord('d')):
+                width_box -= 5;
+                break;
+            elif(cv2.waitKey(3) & 0xFF == ord('a')):
+                width_box += 5;
+                break;
+
+            # altering position of box
+            elif(cv2.waitKey(3) & 0xFF == ord('k')):
+                safe_y += 5;
+                break;
+            elif(cv2.waitKey(3) & 0xFF == ord('i')):
+                safe_y -= 5;
+                break;
+            elif(cv2.waitKey(3) & 0xFF == ord('l')):
+                safe_x -= 5;
+                break;
+            elif(cv2.waitKey(3) & 0xFF == ord('j')):
+                safe_x += 5;
+                break;
+
+            # set configuration
+            elif(cv2.waitKey(3) & 0xFF == ord('b')):
+                pos_confirm = 1;
+                break;
+            break;
+
+            
 
     global args;
 
@@ -112,7 +153,7 @@ def detect(gray, frame):
 
 
                 # EYE IS IN DISTRACTED ZONE
-                if(mex < safe_x-face_x or mex > safe_x-face_x +_sw or mey < safe_y-face_y or mey > safe_y-face_y+_sh):
+                if(mex < safe_x-face_x or mex > safe_x-face_x +width_box or mey < safe_y-face_y or mey > safe_y-face_y+height_box):
                     b,g,r = 0,0,255
 
                 cv2.circle(roi_color,(mex,mey),3,(b,g,r),3)              #draw eye-center
@@ -120,7 +161,6 @@ def detect(gray, frame):
                 cv2.rectangle(roi_color, (eye_x, eye_y), 
                              (eye_x+ew, eye_y+eh), (b,g,r), 3)           # Draw outer eyes-bound 
 
-                
                 in_count+=1;
     return frame;
 
@@ -129,7 +169,7 @@ def detect(gray, frame):
 
 # Implementing Continuous Detection with Webcam..........................
 
-video_capture = cv2.VideoCapture(1);    #"0" => object of live webcam video
+video_capture = cv2.VideoCapture(args.cam);    #"0" => object of live webcam video
 while True:
 
     
