@@ -5,51 +5,48 @@ import cv2;         #openCV
 import argparse;
 
 
-# arduino stuffs ........................................
-
-# import serial   #interface -> Arduino
-# import time
-
-# PORT = "COM4"
-# RATE = 9600
-# ser = serial.Serial(PORT, RATE)
-#                    # read wheel_score integer from arduino'
-# print(ser.readline(8))
-
-#wheel_score = 0;
-
-
-
 # Arguments Stuffs .........................................
 parser = argparse.ArgumentParser(description = 'python main.py [opaque][1]')
-parser.add_argument("bgrnd",help="0 => clear bgrnd | 1=>opaque bgrnd",type=int)     # backcground type 
+parser.add_argument("bgrnd",help="0 => clear bgrnd | 1=>opaque bgrnd", type=int)     # backcground type 
 parser.add_argument("cam",help="0 for webcam | 1 for external cam", type=int)       # webcam to use
+parser.add_argument("arduino",help="0 for no arduino | 1 for arduino", type=int)
 args = parser.parse_args()
 
 
+# arduino stuffs ........................................
+import serial   
+import time
 
+# toggle arduino connection
+if(args.arduino):
+    PORT = "COM4"
+    RATE = 9600
+    arduino= serial.Serial('/dev/cu.usbmodem14411',9600, timeout = 0)
+    # arduino outputs user's level of distraction in terms of steering-wheel sesors
+    if (arduino.inWaiting()>0):
+        wheel_score = arduino.readline().decode('ascii')
+
+
+# Computer Vision ..........................................
+
+eye_score = 0;
 in_count = 0                                            # eye-motion counter (frame #)
 origin_x, origin_y = None, None;                        # Origin Coordinate
 size_confirm, width_box, height_box = 0, 100, 100       # Safety-Zone size attributes
 safe_x, safe_y = 180,200;
 
-
-# Computer Vision ..........................................
-
-
 # Loading Haar Classifiers 
 face_cascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml'); #global referential
 eye_cascade = cv2.CascadeClassifier('haarcascade_eye.xml'); #face referential
 
-
-
 # Detection Algorithm............
 def detect(gray, frame):  
 
-    global wheel_score, width_box, height_box, size_confirm, safe_x, safe_y;
+    global wheel_score, eye_score
+    global width_box, height_box, size_confirm, safe_x, safe_y;
 
 
-    # .. DEFINE DANGER-ZONE ..
+    # ..DEFINE DANGER-ZONE..
     cv2.rectangle(frame, (safe_x, safe_y), (safe_x+width_box, safe_y+height_box), (255, 0, 0), 4); 
 
     # set size of safe-
@@ -91,7 +88,6 @@ def detect(gray, frame):
             break;
 
             
-
     global args;
 
     # Detect face & get bound-coordinates 
@@ -151,7 +147,6 @@ def detect(gray, frame):
                 mex, mey = int(eye_x+ew/2), int(eye_y + eh/2);           # Compute MIDPOINT of Eye
                 b,g,r = 0,255,0
 
-
                 # EYE IS IN DISTRACTED ZONE
                 if(mex < safe_x-face_x or mex > safe_x-face_x +width_box or mey < safe_y-face_y or mey > safe_y-face_y+height_box):
                     b,g,r = 0,0,255
@@ -160,7 +155,6 @@ def detect(gray, frame):
 
                 cv2.rectangle(roi_color, (eye_x, eye_y), 
                              (eye_x+ew, eye_y+eh), (b,g,r), 3)           # Draw outer eyes-bound 
-
                 in_count+=1;
     return frame;
 
