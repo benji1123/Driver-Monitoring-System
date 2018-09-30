@@ -62,6 +62,7 @@ void alarm(int color){
   delay(150);
   }
   else digitalWrite(color_pin, HIGH);
+  int wheel_score = color;
   
 }
 
@@ -83,18 +84,18 @@ void loop() {
     int wheel_score = handsOnTest();// read the analysis result
     
     //detect if the driver's hands are not on the wheel for a while
-    if(wheel_score < 2||eyeFocus>0) dp++;
+    if(wheel_score < 2) dp++;
     else dp = 0;
-    if(dp>50&&dp<=300) {alarm(wheel_score);
+    if(dp>100&&dp<=300) {alarm(wheel_score);
     digitalWrite(11,LOW);}// hands not on wheel over 4 seconds
     else if(dp>300) dp=0;//clear the cache
     else alarm(2);
    
     //receive eyetracking result
-    if(Serial.available()>0){
+   /* if(Serial.available()>0){
         eyeFocus = Serial.read();
     } 
-    
-    Serial.println(wheel_score);//output the distraction status from 0 - 2
-    delay(40);// define the fresh rate at 25Hz
+    */
+   Serial.println(wheel_score);//output the distraction status from 0 - 2
+    delay(20);// define the fresh rate at 25Hz
 }

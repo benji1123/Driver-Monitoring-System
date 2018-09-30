@@ -33,7 +33,7 @@ if(args.arduino == 1):
 # Computer Vision .............................................................................................
 
 in_count = 0                                            # count the frame-#
-size_confirm, width_box, height_box = 0, 120, 120       # Safety-Zone size attributes
+size_confirm, width_box, height_box = 0, 80, 80       # Safety-Zone size attributes
 safe_x, safe_y = 180,200;
 
 # Loading Haar-Cascades 
@@ -71,6 +71,7 @@ def setSafeZone():
 # Running the Detection Algorithm
 def detect(gray, frame):  
     global wheel_score, args, width_box, height_box, size_confirm, safe_x, safe_y, in_count
+    wheel_score = None
 
     cv2.rectangle(frame, (safe_x, safe_y), (safe_x+width_box, safe_y+height_box), (255, 0, 0), 4);  # draw safe-zone on frame
 
@@ -81,7 +82,6 @@ def detect(gray, frame):
     # recieve data from steering-wheel
     if (args.arduino == 1 and arduino.inWaiting()>0):
         wheel_score = arduino.readline().decode('ascii')
-        print(wheel_score) 
 
     # DEFINE SAFE-ZONE
     if(size_confirm == 0):
@@ -114,22 +114,18 @@ def detect(gray, frame):
             # Detect if User is Distracted
             if(c1 or c2  or c3  or c4):
                 distracted = 1
-                print("distracted")
+                print("eyes: distracted | wheel-score: ", wheel_score)
                 b,g,r = 0,0,255
             else:
-                print("OKAY")
+                print("eyes: OKAY | wheel-score: ", wheel_score)
 
             # Draw Rect around the detected Eye on Frame
             cv2.circle(roi_color,(mex,mey),3,(b,g,r),3)              
             cv2.rectangle(roi_color, (eye_x, eye_y), (eye_x+ew, eye_y+eh), (b,g,r), 3)           
 
-            # Tell Arduino the User's Distracted-State
-            if(args.arduino == 1):
-                if(distracted == 0):
-                    arduino.write(0)
-                else:
-                    arduino.write(1)
-            in_count+=1
+            # # Tell Arduino the User's Distracted-State
+            # if(args.arduino == 1):
+            #     in_count+=1
     return frame;
 
 
