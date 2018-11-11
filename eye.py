@@ -22,7 +22,7 @@ args = parser.parse_args()
 
 # arduino stuffs .............................................................................................
 
-import serial   
+#import serial   
 import time
 
 # toggle arduino connection
